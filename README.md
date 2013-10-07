@@ -23,7 +23,7 @@ Radius Networks sells [active iBeacons](http://www.radiusnetworks.com/ibeacon.ht
 Apple's AirLocate sample code available [here](https://developer.apple.com/downloads/index.action?name=WWDC%202013#)  Unfortunately, it is not possible to make an iBeacon
 out of an Android device, because the Android Bluetooth LE APIs do not support the peripheral mode needed  to send advertisement packets like in iBeacon.  Fortunately, Radius
 Networks provides a free Linux virtual machine that when paired with a cheap Bluetooth LE dongle, acts as an iBeacon.   
-The VirtualBox image is available [here](https://s3.amazonaws.com/s3.messageradius.com/Public/VirtualiBeacon.ova). (just login with username/password then run the ./start script).
+The VirtualBox image and other information is available [here](https://github.com/RadiusNetworks/android-ibeacon-service/wiki/Virtual-iBeacon).
 
 ## Supported Platforms
 
