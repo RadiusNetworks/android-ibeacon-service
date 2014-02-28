@@ -27,6 +27,8 @@ import com.radiusnetworks.ibeacon.client.DataProviderException;
 import com.radiusnetworks.ibeacon.client.IBeaconDataFactory;
 import com.radiusnetworks.ibeacon.client.NullIBeaconDataFactory;
 
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.util.Log;
 
 /**
@@ -52,7 +54,7 @@ import android.util.Log;
 * @author  David G. Young
 * @see     Region#matchesIBeacon(IBeacon iBeacon)
 */
-public class IBeacon { 
+public class IBeacon implements Parcelable {
 	/**
 	 * Less than half a meter away
 	 */
@@ -363,5 +365,43 @@ public class IBeacon {
             hexChars[j * 2 + 1] = hexArray[v & 0x0F];
         }
         return new String(hexChars);
-    } 
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(this.proximityUuid);
+        dest.writeInt(this.major);
+        dest.writeInt(this.minor);
+        dest.writeValue(this.proximity);
+        dest.writeValue(this.accuracy);
+        dest.writeInt(this.rssi);
+        dest.writeInt(this.txPower);
+        dest.writeValue(this.runningAverageRssi);
+    }
+
+    private IBeacon(Parcel in) {
+        this.proximityUuid = in.readString();
+        this.major = in.readInt();
+        this.minor = in.readInt();
+        this.proximity = (Integer) in.readValue(Integer.class.getClassLoader());
+        this.accuracy = (Double) in.readValue(Double.class.getClassLoader());
+        this.rssi = in.readInt();
+        this.txPower = in.readInt();
+        this.runningAverageRssi = (Double) in.readValue(Double.class.getClassLoader());
+    }
+
+    public static Parcelable.Creator<IBeacon> CREATOR = new Parcelable.Creator<IBeacon>() {
+        public IBeacon createFromParcel(Parcel source) {
+            return new IBeacon(source);
+        }
+
+        public IBeacon[] newArray(int size) {
+            return new IBeacon[size];
+        }
+    };
 }
