@@ -1,27 +1,20 @@
-int versionMajor = 0
-int versionMinor = 7
-int versionPatch = 6
-int versionBuild = 3
-
 ext {
-    SONATYPE_URL = ""
-    IS_DEV_BUILD = false
-    IS_RELEASE_BUILD = false
-    GROUP = "com.radiusnetworks"
+    sonatypeUrl = ""
+    isDevBuild = false
+    isReleaseBuild = false
 }
 
-version = "${versionMajor}.${versionMinor}.${versionPatch}"
+version = 'git describe --abbrev=0 --tags'.execute([], project.rootDir).text.trim()
 group = GROUP
 
-
 if (hasProperty("release")) {
-    IS_RELEASE_BUILD = true
-    SONATYPE_URL = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+    isReleaseBuild = true
+    sonatypeUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
 } else if (hasProperty("snapshot")) {
     version += "-SNAPSHOT"
-    SONATYPE_URL = "https://oss.sonatype.org/content/repositories/snapshots/"
+    sonatypeUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
 } else {
-    IS_DEV_BUILD = true
+    isDevBuild = true
 }
 
 buildscript {
@@ -47,7 +40,15 @@ android {
     defaultConfig {
         targetSdkVersion 19
 
-        versionCode = versionMajor * 10000 + versionMinor * 1000 + versionPatch * 100 + versionBuild
+        versionCode = {
+            int code = 0
+            int versionNumber = 10000
+            version.split('.').each {
+                code += it * versionNumber
+                versionNumber /= 10
+            }
+            return code;
+        }()
         versionName = version
     }
 
@@ -63,8 +64,8 @@ repositories {
 }
 
 dependencies {
-    androidTestCompile 'junit:junit:4.10'
-    androidTestCompile 'org.robolectric:robolectric:2.1.+'
+    androidTestCompile 'junit:junit:4.11'
+    androidTestCompile 'org.robolectric:robolectric:2.2'
     androidTestCompile 'com.squareup:fest-android:1.0.+'
 }
 
@@ -82,17 +83,15 @@ apply plugin: "signing"
 afterEvaluate { project ->
     uploadArchives {
         repositories {
-            if (IS_DEV_BUILD) {
+            if (isDevBuild) {
                 mavenLocal()
             } else {
                 mavenDeployer {
                     beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
-                    repository(url: SONATYPE_URL) {
+                    repository(url: sonatypeUrl) {
                         authentication(userName: sonatypeUsername, password: sonatypePassword)
                     }
-
-                    println GROUP
 
                     pom.project {
                         name 'AndroidIBeaconLibrary'
@@ -131,7 +130,7 @@ afterEvaluate { project ->
     }
 
     signing {
-        required { IS_RELEASE_BUILD && gradle.taskGraph.hasTask("uploadArchives") }
+        required { isReleaseBuild && gradle.taskGraph.hasTask("uploadArchives") }
         sign configurations.archives
     }
 
@@ -155,20 +154,25 @@ afterEvaluate { project ->
     }
 }
 
-/** Bundling tasks for eclipse */
-task bundleEclipse << {
-    exec {
-        executable 'scripts/bundle-eclipse'
-    }
+task bundleEclipse(type: Exec) {
+    commandLine './scripts/bundle-eclipse'
 }
 
-task distribution(dependsOn: ["bundleEclipse", "build", "clean"]) << {
-    println "Building with version=$version"
+task distribution(dependsOn: [ bundleEclipse, build, clean]) { }
+
+task mavenSnapshot(type: Exec) {
+    executable = 'gradle'
+    workingDir = project.rootDir
+    args = [ 'uploadArchives', '-Psnapshot' ]
 }
 
-task release(dependsOn: 'distribution') << {
-    println('Doing release build')
+task mavenRelease(type: Exec) {
+    executable = 'gradle'
+    workingDir = project.rootDir
+    args = [ 'uploadArchives', '-Prelease' ]
 }
+
+task release(dependsOn: [ distribution, mavenRelease ]) { }
 
 build.mustRunAfter clean
 bundleEclipse.mustRunAfter build
